@@ -90,6 +90,23 @@
     cursor: pointer;
     transition: background .15s;
   }
+  .reverse-box {
+    margin-top: 16px;
+    display: flex;
+    gap: 8px;
+  }
+  .reverse-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+  }
+  .reverse-input:focus { border-color: #1677ff; }
+  .btn-reverse { background: #fa8c16; color: #fff; white-space: nowrap; width: auto; padding: 10px 18px; font-size: 14px; }
+  .btn-reverse:hover { background: #ffa940; }
   .btn-copy { background: #1677ff; color: #fff; }
   .btn-copy:hover { background: #4096ff; }
   .btn-download { background: #52c41a; color: #fff; margin-top: 10px; }
@@ -122,6 +139,10 @@
   </div>
   <div class="days" id="days"></div>
   <div class="result" id="result"><span class="label">已选：</span>暂无</div>
+  <div class="reverse-box">
+    <input class="reverse-input" id="reverseInput" placeholder="输入日期，如：4，8，11，18" autocomplete="off">
+    <button class="btn btn-reverse" id="reverseBtn">反向标注</button>
+  </div>
   <button class="btn btn-copy" id="copyBtn">复制排班</button>
   <button class="btn btn-download" id="downloadBtn">下载排班图</button>
   <button class="btn btn-clear" id="clearBtn">清空选择</button>
@@ -241,6 +262,48 @@
     selected.clear();
     document.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
     renderResult();
+  });
+
+  // 反向标注：输入日期串自动选中
+  document.getElementById('reverseBtn').addEventListener('click', () => {
+    const raw = document.getElementById('reverseInput').value.trim();
+    if (!raw) { showToast('请输入日期'); return; }
+    // 提取所有数字（支持中英文逗号、空格、顿号等分隔）
+    const nums = raw.match(/\d+/g);
+    if (!nums) { showToast('未识别到日期数字'); return; }
+    const invalid = [];
+    const valid = [];
+    nums.forEach(n => {
+      const d = Number(n);
+      if (d >= 1 && d <= daysInMonth) {
+        valid.push(d);
+      } else {
+        invalid.push(d);
+      }
+    });
+    // 清空当前选择，重新标注
+    selected.clear();
+    document.querySelectorAll('.day.selected').forEach(el => el.classList.remove('selected'));
+    valid.forEach(d => {
+      selected.add(d);
+      const cells = document.querySelectorAll('.day');
+      cells.forEach(cell => {
+        if (Number(cell.textContent) === d && !cell.classList.contains('empty')) {
+          cell.classList.add('selected');
+        }
+      });
+    });
+    renderResult();
+    if (invalid.length) {
+      showToast('已标注 ' + valid.length + ' 天，' + invalid.length + ' 个无效日期被忽略');
+    } else {
+      showToast('已标注 ' + valid.length + ' 天');
+    }
+  });
+
+  // 回车也能触发反向标注
+  document.getElementById('reverseInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') document.getElementById('reverseBtn').click();
   });
 
   function roundRect(ctx, x, y, w, h, r) {
