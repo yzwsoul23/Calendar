@@ -245,6 +245,22 @@
     transition: opacity .25s;
   }
   .toast.show { opacity: 1; }
+
+  /* 移动端：贴边加宽，让日期格子更大 */
+  @media (max-width: 640px) {
+    body { padding: 0; }
+    .container {
+      max-width: none;
+      border-radius: 0;
+      box-shadow: none;
+      padding: 16px 6px 24px;
+      min-height: 100vh;
+    }
+    .cal-grid {
+      grid-template-columns: 24px repeat(7, minmax(0, 1fr));
+      gap: 3px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -364,6 +380,7 @@
 
   let isDragging = false;
   let dragSelect = true;
+  let lastTouchTime = 0; // 记录触摸时间，用于忽略移动端产生的合成 mousedown
 
   function applyDrag(cell, d) {
     if (dragSelect && !selected.has(d)) {
@@ -463,6 +480,7 @@
         cell.innerHTML = html;
 
         cell.addEventListener('mousedown', (e) => {
+          if (Date.now() - lastTouchTime < 600) return; // 忽略触摸后合成的鼠标事件
           e.preventDefault();
           isDragging = true;
           dragSelect = !selected.has(d);
@@ -472,6 +490,7 @@
           if (isDragging) applyDrag(cell, d);
         });
         cell.addEventListener('touchstart', () => {
+          lastTouchTime = Date.now();
           isDragging = true;
           dragSelect = !selected.has(d);
           applyDrag(cell, d);
@@ -515,7 +534,7 @@
   }, { passive: false });
 
   document.addEventListener('mouseup', () => isDragging = false);
-  document.addEventListener('touchend', () => isDragging = false);
+  document.addEventListener('touchend', () => { isDragging = false; lastTouchTime = Date.now(); });
 
   function getSorted() {
     return [...selected].sort((a, b) => a - b);
